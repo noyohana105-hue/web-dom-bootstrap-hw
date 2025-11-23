@@ -18,7 +18,7 @@
 
         .calculator-wrapper {
             width: 100%;
-            max-width: 760px;  
+            max-width: 760px;  /* tablet width */
         }
 
         .calculator-card {
@@ -28,7 +28,7 @@
 
         @media (min-width: 992px) {
             .calculator-wrapper {
-                max-width: 900px;
+                max-width: 900px; /* desktop a bit wider */
             }
 
             #logs {
@@ -45,7 +45,6 @@
             <div class="card shadow-sm calculator-card">
                 <div class="card-body">
                     <form id="calc-form" novalidate>
-                        <!-- ROW 1/2: numbers + operation + button -->
                         <div class="row g-3 align-items-end mb-4">
                             <!-- First number -->
                             <div class="col-12 col-md-6 col-lg-3">
@@ -71,6 +70,7 @@
                                 <div class="invalid-feedback">Please enter a valid number.</div>
                             </div>
 
+                            <!-- Operation -->
                             <div class="col-6 col-md-6 col-lg-3">
                                 <label for="operation" class="form-label">Operation</label>
                                 <select id="operation" class="form-select">
@@ -89,6 +89,7 @@
                                 </button>
                             </div>
 
+                            <!-- Result -->
                             <div class="col-12">
                                 <label for="result" class="form-label">Result</label>
                                 <input
@@ -100,6 +101,7 @@
                             </div>
                         </div>
 
+                        <!-- Logs -->
                         <div class="row g-3">
                             <div class="col-12">
                                 <label for="logs" class="form-label">Logs</label>
@@ -117,9 +119,109 @@
         </div>
     </div>
 
-    <!-- Bootstrap bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Inline JS so there is zero chance of wrong file path -->
+    <script>
+        function isNumeric(value) {
+            if (typeof value !== "string") return false;
+            var trimmed = value.trim();
+            if (trimmed === "") return false;
+            var num = Number(trimmed);
+            return !isNaN(num) && isFinite(num);
+        }
 
-    <script src="calculator.js"></script>
+        function setValidationState(inputElement, valid) {
+            inputElement.classList.remove("is-valid", "is-invalid");
+            if (valid === null) {
+                return; // empty: no color
+            }
+            if (valid) {
+                inputElement.classList.add("is-valid");
+            } else {
+                inputElement.classList.add("is-invalid");
+            }
+        }
+
+        window.onload = function () {
+            var form = document.getElementById("calc-form");
+            var num1Input = document.getElementById("num1");
+            var num2Input = document.getElementById("num2");
+            var operationSelect = document.getElementById("operation");
+            var resultInput = document.getElementById("result");
+            var logsTextarea = document.getElementById("logs");
+
+            // live validation
+            [num1Input, num2Input].forEach(function (input) {
+                input.addEventListener("input", function () {
+                    var value = input.value;
+                    if (value.trim() === "") {
+                        setValidationState(input, null);
+                    } else if (isNumeric(value)) {
+                        setValidationState(input, true);   // green
+                    } else {
+                        setValidationState(input, false);  // red
+                    }
+                });
+            });
+
+            form.addEventListener("submit", function (event) {
+                event.preventDefault();
+
+                var raw1 = num1Input.value.trim();
+                var raw2 = num2Input.value.trim();
+
+                var valid1 = isNumeric(raw1);
+                var valid2 = isNumeric(raw2);
+
+                setValidationState(num1Input, valid1 ? true : false);
+                setValidationState(num2Input, valid2 ? true : false);
+
+                if (!valid1 || !valid2) {
+                    resultInput.value = "";
+                    logsTextarea.value += "Invalid input: please enter numeric values.\n";
+                    logsTextarea.scrollTop = logsTextarea.scrollHeight;
+                    return;
+                }
+
+                var a = Number(raw1);
+                var b = Number(raw2);
+                var op = operationSelect.value;
+
+                var result;
+                var symbol;
+
+                if (op === "add") {
+                    result = a + b;
+                    symbol = "+";
+                } else if (op === "sub") {
+                    result = a - b;
+                    symbol = "-";
+                } else if (op === "mul") {
+                    result = a * b;
+                    symbol = "×";
+                } else if (op === "div") {
+                    symbol = "÷";
+                    if (b === 0) {
+                        resultInput.value = "Error: division by zero";
+                        logsTextarea.value += a + " " + symbol + " " + b +
+                            " = Error (division by zero)\n";
+                        logsTextarea.scrollTop = logsTextarea.scrollHeight;
+                        return;
+                    }
+                    result = a / b;
+                } else if (op === "pow") {
+                    result = Math.pow(a, b);
+                    symbol = "^";
+                } else {
+                    logsTextarea.value += "Unknown operation\n";
+                    logsTextarea.scrollTop = logsTextarea.scrollHeight;
+                    return;
+                }
+
+                resultInput.value = result;
+                logsTextarea.value += a + " " + symbol + " " + b + " = " + result + "\n";
+                logsTextarea.scrollTop = logsTextarea.scrollHeight;
+            });
+        };
+    </script>
 </body>
 </html>
